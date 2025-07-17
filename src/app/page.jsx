@@ -1,9 +1,14 @@
-import LoginPage from "./login/page";
+'use client';
 
-export default function Home() {
+import useAuth from '@/components/AuthRoute';
+import Dashboard from './dashboard/page';
+
+export default () => {
+  useAuth();
+
   return (
     <>
-      <LoginPage />
+      <Dashboard />
     </>
   );
-}
+};

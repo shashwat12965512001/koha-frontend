@@ -37,7 +37,7 @@ const LoginPage = () => {
             localStorage.setItem("user", JSON.stringify(data.user));
 
             alert("✅ Logged in successfully!");
-            router.push("/dashboard");
+            router.push("/");
         } catch (err) {
             setError("Something went wrong.");
         }
