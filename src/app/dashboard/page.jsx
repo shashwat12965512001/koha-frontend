@@ -1,7 +1,10 @@
-export default function Dashboard() {
+import AuthenticatedLayout from '@/components/AuthenticatedLayout';
+import Dashboard from '@/components/Dashboard';
+
+export default function DashboardPage() {
     return (
-        <>
-            dashboard
-        </>
+        <AuthenticatedLayout>
+            <Dashboard />
+        </AuthenticatedLayout>
     );
-};
+}
