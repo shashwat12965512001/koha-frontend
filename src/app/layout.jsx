@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "PESU Library System",
+  title: "PESU - Library System",
   description: "A Koha-like library management platform",
 };
 

@@ -10,6 +10,13 @@ const Sidebar = () => {
 
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/dashboard' },
+        { id: 'acquisitions', label: 'Acquisitions', icon: '🛒', path: '/acquisitions' },
+        { id: 'serials', label: 'Serials', icon: '🗞️', path: '/serials' },
+        { id: 'circulation', label: 'Circulation', icon: '🔁', path: '/circulation' },
+        { id: 'inventory', label: 'Inventory', icon: '📦', path: '/inventory' },
+        { id: 'role_permissions', label: 'Roles & Permissions', icon: '🛡️', path: '/role_permissions' },
+        { id: 'issue-return', label: 'Issue/Return Books', icon: '📤', path: '/issue-return' },
+        { id: 'fine', label: 'Fines & Penalties', icon: '💰', path: '/fine' },
         { id: 'catalog', label: 'Catalog', icon: '📚', path: '/catalog' },
         { id: 'my-books', label: 'My Books', icon: '📖', path: '/my-books' },
         { id: 'reservations', label: 'Reservations', icon: '🔖', path: '/reservations' },
@@ -48,8 +55,8 @@ const Sidebar = () => {
                             <Link
                                 href={item.path}
                                 className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${isActive(item.path)
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                                     }`}
                             >
                                 <span className="text-lg">{item.icon}</span>
