@@ -2,11 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 const Sidebar = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleLogout = () => {
+        // Clear authentication data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+    };
 
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/dashboard' },
@@ -22,13 +30,14 @@ const Sidebar = () => {
         { id: 'reservations', label: 'Reservations', icon: '🔖', path: '/reservations' },
         { id: 'patrons', label: 'Patrons', icon: '👥', path: '/patrons' },
         { id: 'reports', label: 'Reports', icon: '📈', path: '/reports' },
-        { id: 'settings', label: 'Settings', icon: '⚙️', path: '/settings' }
+        { id: 'settings', label: 'Settings', icon: '⚙️', path: '/settings' },
+        { id: 'logout', label: 'logout', icon: '👈', path: '/logout' }
     ];
 
     const isActive = (path) => pathname === path;
 
     return (
-        <aside className={`bg-gray-900 text-white transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'
+        <aside className={`bg-gray-900 text-white transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'
             } min-h-screen sticky top-16 z-30`}>
             {/* Toggle Button */}
             <div className="p-4 border-b border-gray-700">
@@ -52,18 +61,25 @@ const Sidebar = () => {
                 <ul className="space-y-2">
                     {menuItems.map((item) => (
                         <li key={item.id}>
-                            <Link
-                                href={item.path}
+                            <a
+                                onClick={(e) => {
+                                    if (item.id === 'logout') {
+                                        e.preventDefault();
+                                        handleLogout();
+                                    } else {
+                                        router.push(item.path);
+                                    }
+                                }}
                                 className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${isActive(item.path)
                                     ? 'bg-blue-600 text-white'
                                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                                     }`}
+                                href={item.path}
                             >
                                 <span className="text-lg">{item.icon}</span>
-                                {!isCollapsed && (
-                                    <span className="font-medium">{item.label}</span>
-                                )}
-                            </Link>
+                                {!isCollapsed && <span className="font-medium">{item.label}</span>}
+                            </a>
+
                         </li>
                     ))}
                 </ul>
