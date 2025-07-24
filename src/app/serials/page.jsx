@@ -103,6 +103,26 @@ export default function SerialsPage() {
         }
     }
 
+    const handleDelete = async (id) => {
+        const confirm = window.confirm("Are you sure you want to delete this serial?");
+        if (!confirm) return;
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/serials/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                alert("✅ Serial deleted successfully");
+                setSerials(prev => prev.filter(serial => serial._id !== id));
+            } else {
+                console.error("❌ Failed to delete serial");
+            }
+        } catch (err) {
+            console.error("❌ Error deleting serial:", err);
+        }
+    };
+
     useEffect(() => {
         fetchAcquisitions();
     }, []);
@@ -294,6 +314,7 @@ export default function SerialsPage() {
                                 <th className="px-6 py-3">Status</th>
                                 <th className="px-6 py-3">Last Issue</th>
                                 <th className="px-6 py-3">Next Issue</th>
+                                <th className="px-6 py-3">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -329,6 +350,13 @@ export default function SerialsPage() {
                                                 </td>
                                                 <td className="px-6 py-3">{new Date(serial.lastIssueDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                                                 <td className="px-6 py-3">{new Date(serial.nextIssueDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                                                <td className="px-6 py-3">
+                                                    <button onClick={() => handleDelete(serial._id)}>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="w-8 h-8 text-red-600 mx-auto hover:scale-110 transition">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m3 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h14zM10 11v6M14 11v6" />
+                                                        </svg>
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))
                                     ) : (

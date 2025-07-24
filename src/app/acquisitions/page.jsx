@@ -87,6 +87,29 @@ export default function AcquisitionsPage() {
         console.log('Submitted:', form);
     };
 
+    const handleDelete = async (id) => {
+        const confirm = window.confirm("Are you sure you want to delete this acquisition?");
+        if (!confirm) return;
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/acquisitions/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                // Optional: Show success message
+                alert("✅ Deleted successfully");
+
+                // Update state to remove deleted item from the table
+                setPurchases(prev => prev.filter(p => p._id !== id));
+            } else {
+                console.error("❌ Failed to delete");
+            }
+        } catch (err) {
+            console.error("❌ Error deleting acquisition:", err);
+        }
+    };
+
     useEffect(() => {
         const fetchAcquisitions = async () => {
             try {
@@ -280,6 +303,7 @@ export default function AcquisitionsPage() {
                                 <th className="px-6 py-3">Qty</th>
                                 <th className="px-6 py-3">Cost</th>
                                 <th className="px-6 py-3">Order Date</th>
+                                <th className="px-6 py-3">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -300,6 +324,13 @@ export default function AcquisitionsPage() {
                                                 <td className="px-6 py-3">{purchase.quantity}</td>
                                                 <td className="px-6 py-3">{purchase.totalCost}</td>
                                                 <td className="px-6 py-3">{new Date(purchase.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                                                <td className="px-6 py-3">
+                                                    <button onClick={() => handleDelete(purchase._id)}>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="w-8 h-8 text-red-600 mx-auto hover:scale-110 transition">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m3 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h14zM10 11v6M14 11v6" />
+                                                        </svg>
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))
                                     ) : (
