@@ -17,7 +17,7 @@ const Sidebar = () => {
     };
 
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/dashboard' },
+        { id: 'admin-dashboard', label: 'Dashboard', icon: '📊', path: '/admin-dashboard' },
         { id: 'acquisitions', label: 'Acquisitions', icon: '🛒', path: '/acquisitions' },
         { id: 'serials', label: 'Serials', icon: '🗞️', path: '/serials' },
         { id: 'circulation', label: 'Circulation', icon: '🔁', path: '/circulation' },
