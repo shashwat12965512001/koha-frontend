@@ -14,7 +14,7 @@ export default function HomePage() {
       const token = localStorage.getItem('token');
       if (token) {
         setIsAuthenticated(true);
-        router.push('/dashboard');
+        router.push('/admin-dashboard');
       } else {
         setIsAuthenticated(false);
       }
