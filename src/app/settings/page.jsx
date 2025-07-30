@@ -80,9 +80,9 @@ export default function SettingsPage() {
             const res = await fetch('http://localhost:5000/api/settings/');
             const data = await res.json();
             if (res.ok) {
-                setSettings(data); // assuming you have a useState for patrons
+                setSettings(data); // assuming you have a useState for settings
             } else {
-                alert(data.error || 'Failed to fetch patrons');
+                alert(data.error || 'Failed to fetch settings');
             }
         } catch (err) {
             console.error('Error:', err.message);

@@ -7,7 +7,6 @@ export default function InventoryPage() {
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [inventory, setInventory] = useState([]);
-
     const [form, setForm] = useState({
         title: '',
         authors: '',
@@ -29,23 +28,33 @@ export default function InventoryPage() {
         accessionNumber: '',
         barcode: '',
         status: 'Available', // Available, Issued, Lost, Damaged
-        notes: ''
+        notes: '',
+        coverImageFile: null,
     });
-
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
+            const formData = new FormData();
+
+            // Append all fields
+            Object.keys(form).forEach((key) => {
+                if (key !== 'coverImagePreview' && key !== 'coverImageFile') {
+                    formData.append(key, form[key]);
+                }
+            });
+
+            // Append the file
+            if (form.coverImageFile) {
+                formData.append('coverImage', form.coverImageFile);
+            }
+
             const response = await fetch('http://localhost:5000/api/inventory/add', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(form),
+                body: formData,
             });
 
             const data = await response.json();
@@ -75,13 +84,15 @@ export default function InventoryPage() {
                     accessionNumber: '',
                     barcode: '',
                     status: 'Available',
-                    notes: ''
+                    notes: '',
+                    coverImageFile: null,
+                    coverImagePreview: null,
                 });
 
                 setIsModalOpen(false);
 
-                // Optional: update inventory list if needed
-                setInventory(prev => [data.book, ...prev]);
+                // Optional: update inventory list
+                setInventory((prev) => [data.book, ...prev]);
             } else {
                 console.error('❌ Error:', data.error);
                 alert(data.error || 'Failed to add book.');
@@ -91,12 +102,10 @@ export default function InventoryPage() {
             alert('Network error. Please try again.');
         }
     };
-
     const filteredBooks = inventory.filter(book =>
         book.title.toLowerCase().includes(search.toLowerCase()) ||
         book.authors.toLowerCase().includes(search.toLowerCase())
     );
-
     const handleDelete = async (id) => {
         const confirmDelete = window.confirm("Are you sure you want to delete this book?");
         if (!confirmDelete) return;
@@ -120,17 +129,16 @@ export default function InventoryPage() {
             alert('Network error. Please try again.');
         }
     };
-
+    const fetchBooks = async () => {
+        try {
+            const res = await fetch('http://localhost:5000/api/inventory/all');
+            const data = await res.json();
+            setInventory(data);
+        } catch (error) {
+            console.error('Failed to fetch books:', error);
+        }
+    };
     useEffect(() => {
-        const fetchBooks = async () => {
-            try {
-                const res = await fetch('http://localhost:5000/api/inventory/all');
-                const data = await res.json();
-                setInventory(data);
-            } catch (error) {
-                console.error('Failed to fetch books:', error);
-            }
-        };
 
         fetchBooks();
     }, []);
@@ -160,7 +168,7 @@ export default function InventoryPage() {
                             </button>
                         </div>
                         {/* Modal body */}
-                        <form onSubmit={handleSubmit} className="p-4 md:p-5">
+                        <form onSubmit={handleSubmit} className="p-4 md:p-5" encType="multipart/form-data">
                             <div className="grid gap-4 mb-4 grid-cols-2">
                                 {/* Title */}
                                 <div className="col-span-2">
@@ -284,7 +292,34 @@ export default function InventoryPage() {
                                         <option value="Issued">Issued</option>
                                         <option value="Lost">Lost</option>
                                         <option value="Damaged">Damaged</option>
+                                        <option value="Reservered">Reservered</option>
+                                        <option value="Out of Stock">Out of Stock</option>
                                     </select>
+                                </div>
+
+                                {/* Upload Cover */}
+                                <div>
+                                    <label className="block mb-1 text-sm font-medium">Upload Cover Image</label>
+                                    <input
+                                        type="file"
+                                        name="coverImage"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                coverImageFile: file,
+                                            }));
+                                        }}
+                                        className="w-full p-2 border rounded-md"
+                                    />
+                                    {form.coverImagePreview && (
+                                        <img
+                                            src={form.coverImagePreview}
+                                            alt="Preview"
+                                            className="mt-2 max-h-48 rounded shadow border"
+                                        />
+                                    )}
                                 </div>
 
                                 {/* Notes */}
@@ -299,7 +334,6 @@ export default function InventoryPage() {
                                 Add Book
                             </button>
                         </form>
-
                     </div>
                 </div>
             </div>
@@ -330,6 +364,7 @@ export default function InventoryPage() {
                         <thead className="bg-gray-100 text-gray-700 uppercase">
                             <tr>
                                 <th className="px-6 py-3">ID</th>
+                                <th className="px-6 py-3">Cover</th>
                                 <th className="px-6 py-3">Title</th>
                                 <th className="px-6 py-3">Author</th>
                                 <th className="px-6 py-3">Status</th>
@@ -350,6 +385,7 @@ export default function InventoryPage() {
                                         filteredBooks.map((book, index) => (
                                             <tr key={book._id || index} className="border-b hover:bg-gray-50">
                                                 <td className="px-6 py-3">INV-{index + 1}</td>
+                                                <td className="px-6 py-3"><img className='w-16' src={book.coverImageUrl ? `http://localhost:5000${book.coverImageUrl}` : '/assets/img/cover.png'} alt="cover" /></td>
                                                 <td className="px-6 py-3">{book.title}</td>
                                                 <td className="px-6 py-3">{book.authors}</td>
                                                 <td className="px-6 py-3">
