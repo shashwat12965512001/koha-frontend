@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Sidebar from '@/components/Sidebar';
@@ -10,21 +10,43 @@ export default function AuthenticatedLayout({ children }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+    const pathname = usePathname(); // current route
 
     useEffect(() => {
-        const checkAuth = () => {
+        const checkAuthAndRedirect = () => {
             const token = localStorage.getItem('token');
-            if (token) {
-                setIsAuthenticated(true);
-            } else {
+            const user = JSON.parse(localStorage.getItem('user'));
+
+            if (!token || !user) {
                 router.push('/login');
                 return;
             }
+
+            const role = user?.role?.name;
+            const rolePathMap = {
+                "Admin": "/admin",
+                "Librarian": "/librarian",
+                "Acquisition Manager": "/acquisition",
+                "Inventory Manager": "/inventory",
+                "Circulation Staff": "/circulation",
+                "Finance Officer": "/finance",
+                "Student": "/student",
+            };
+
+            const rolePath = rolePathMap[role];
+
+            // 🚨 Redirect ONLY if current pathname doesn't start with role path
+            if (!pathname.startsWith(rolePath)) {
+                router.push(rolePath);
+                return;
+            }
+
+            setIsAuthenticated(true);
             setIsLoading(false);
         };
 
-        checkAuth();
-    }, [router]);
+        checkAuthAndRedirect();
+    }, [router, pathname]);
 
     if (isLoading) {
         return (
@@ -34,9 +56,7 @@ export default function AuthenticatedLayout({ children }) {
         );
     }
 
-    if (!isAuthenticated) {
-        return null;
-    }
+    if (!isAuthenticated) return null;
 
     return (
         <div className="flex flex-col min-h-screen">

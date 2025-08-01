@@ -7,6 +7,57 @@ const Sidebar = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
+    const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user')) : null;
+    const role = user?.role?.name || '';
+    let menuItems = [];
+
+    const studentMenu = [
+        { id: 'student', label: 'Dashboard', icon: '📊', path: '/student' },
+        { id: 'borrowed', label: 'My Borrowed Books', icon: '📖', path: '/student/borrowed' },
+        { id: 'search', label: 'Search Catalog', icon: '🔍', path: '/student/search' },
+        { id: 'reserve', label: 'Reserve Books', icon: '💾', path: '/student/reserve' },
+        { id: 'reminders', label: 'Due Reminders', icon: '📅', path: '/student/reminders' },
+        { id: 'fines', label: 'Fine Summary', icon: '🧾', path: '/student/fines' },
+        { id: 'ai-recommendations', label: 'AI Recommendations', icon: '📚', path: '/student/ai/recommendations' },
+        { id: 'academic-suggestions', label: 'Academic Suggestions', icon: '🎯', path: '/student/ai/academic' },
+        { id: 'ai-summaries', label: 'AI Book Summaries', icon: '🧠', path: '/student/ai/summaries' },
+        { id: 'preferences', label: 'Preferences', icon: '⚙️', path: '/student/preferences' },
+        { id: 'reading-history', label: 'Reading History', icon: '📚', path: '/student/history' },
+        { id: 'usage-stats', label: 'Usage Stats', icon: '📊', path: '/student/stats' },
+        { id: 'book-request', label: 'Request a Book', icon: '📬', path: '/student/request' },
+        { id: 'feedback', label: 'Feedback / Support', icon: '💬', path: '/student/feedback' },
+        { id: 'events', label: 'Library Events', icon: '🗓️', path: '/student/events' },
+        { id: 'announcements', label: 'Announcements', icon: '📢', path: '/student/announcements' },
+    ];
+
+    const adminMenu = [
+        { id: 'admin', label: 'Dashboard', icon: '📊', path: '/admin' },
+        { id: 'acquisitions', label: 'Acquisitions', icon: '🛒', path: '/admin/acquisitions' },
+        { id: 'serials', label: 'Serials', icon: '🗞️', path: '/admin/serials' },
+        { id: 'circulation', label: 'Circulation', icon: '🔁', path: '/admin/circulation' },
+        { id: 'inventory', label: 'Inventory', icon: '📦', path: '/admin/inventory' },
+        { id: 'role_permissions', label: 'Roles & Permissions', icon: '🛡️', path: '/admin/role_permissions' },
+        { id: 'issue-return', label: 'Issue/Return Books', icon: '📤', path: '/admin/issue-return' },
+        { id: 'fine', label: 'Fines & Penalties', icon: '💰', path: '/admin/fine' },
+        { id: 'catalog', label: 'Catalog', icon: '📚', path: '/admin/catalog' },
+        { id: 'my-books', label: 'My Books', icon: '📖', path: '/admin/my-books' },
+        { id: 'reservations', label: 'Reservations', icon: '🔖', path: '/admin/reservations' },
+        { id: 'patrons', label: 'Patrons', icon: '👥', path: '/admin/patrons' },
+        { id: 'reports', label: 'Reports', icon: '📈', path: '/admin/reports' },
+        { id: 'settings', label: 'Settings', icon: '⚙️', path: '/admin/settings' },
+    ];
+
+    // universal
+    const commonMenu = [
+        { id: 'logout', label: 'Logout', icon: '👈', path: '/logout' }
+    ];
+
+    if (role === 'Student') {
+        menuItems = [...studentMenu, ...commonMenu];
+    } else if (role === 'Admin') {
+        menuItems = [...adminMenu, ...commonMenu];
+    }
+
 
     const handleLogout = () => {
         // Clear authentication data
@@ -14,45 +65,6 @@ const Sidebar = () => {
         localStorage.removeItem('user');
         router.push('/login');
     };
-
-    const menuItems = [
-        // // Student Menu Items
-        // { id: 'student-portal', label: 'Student', icon: '📊', path: '/student-portal' },
-        // { id: 'borrowed', label: 'My Borrowed Books', icon: '📖', path: '/student-portal/borrowed' },
-        // { id: 'search', label: 'Search Catalog', icon: '🔍', path: '/student-portal/search' },
-        // { id: 'reserve', label: 'Reserve Books', icon: '💾', path: '/student-portal/reserve' },
-        // { id: 'reminders', label: 'Due Reminders', icon: '📅', path: '/student-portal/reminders' },
-        // { id: 'fines', label: 'Fine Summary', icon: '🧾', path: '/student-portal/fines' },
-        // { id: 'ai-recommendations', label: 'AI Recommendations', icon: '📚', path: '/student-portal/ai/recommendations' },
-        // { id: 'academic-suggestions', label: 'Academic Suggestions', icon: '🎯', path: '/student-portal/ai/academic' },
-        // { id: 'ai-summaries', label: 'AI Book Summaries', icon: '🧠', path: '/student-portal/ai/summaries' },
-        // { id: 'preferences', label: 'Preferences', icon: '⚙️', path: '/student-portal/preferences' },
-        // { id: 'reading-history', label: 'Reading History', icon: '📚', path: '/student-portal/history' },
-        // { id: 'usage-stats', label: 'Usage Stats', icon: '📊', path: '/student-portal/stats' },
-        // { id: 'book-request', label: 'Request a Book', icon: '📬', path: '/student-portal/request' },
-        // { id: 'feedback', label: 'Feedback / Support', icon: '💬', path: '/student-portal/feedback' },
-        // { id: 'events', label: 'Library Events', icon: '🗓️', path: '/student-portal/events' },
-        // { id: 'announcements', label: 'Announcements', icon: '📢', path: '/student-portal/announcements' },
-
-        // Admin Menu Items
-        { id: 'admin-dashboard', label: 'Dashboard', icon: '📊', path: '/admin-dashboard' },
-        { id: 'acquisitions', label: 'Acquisitions', icon: '🛒', path: '/acquisitions' },
-        { id: 'serials', label: 'Serials', icon: '🗞️', path: '/serials' },
-        { id: 'circulation', label: 'Circulation', icon: '🔁', path: '/circulation' },
-        { id: 'inventory', label: 'Inventory', icon: '📦', path: '/inventory' },
-        { id: 'role_permissions', label: 'Roles & Permissions', icon: '🛡️', path: '/role_permissions' },
-        { id: 'issue-return', label: 'Issue/Return Books', icon: '📤', path: '/issue-return' },
-        { id: 'fine', label: 'Fines & Penalties', icon: '💰', path: '/fine' },
-        { id: 'catalog', label: 'Catalog', icon: '📚', path: '/catalog' },
-        { id: 'my-books', label: 'My Books', icon: '📖', path: '/my-books' },
-        { id: 'reservations', label: 'Reservations', icon: '🔖', path: '/reservations' },
-        { id: 'patrons', label: 'Patrons', icon: '👥', path: '/patrons' },
-        { id: 'reports', label: 'Reports', icon: '📈', path: '/reports' },
-        { id: 'settings', label: 'Settings', icon: '⚙️', path: '/settings' },
-
-        // Logout
-        { id: 'logout', label: 'logout', icon: '👈', path: '/logout' }
-    ];
 
     const isActive = (path) => pathname === path;
 

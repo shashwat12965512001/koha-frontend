@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import InputField from "@/components/InputField";
 import Button from "@/components/Button";
 import { set } from "date-fns";
+import { useRouter } from 'next/navigation';
 
 const LoginPage = () => {
     const [formData, setFormData] = useState({ email: "", password: "", role: "" });
     const [error, setError] = useState("");
-    const [roles, setRoles] = useState([]);
+    const router = useRouter();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -50,6 +51,8 @@ const LoginPage = () => {
 
             const userRole = await getRoleByEmail(formData.email);
             if (userRole) {
+                data.user.role = { name: userRole };
+
                 // Save Strapi JWT + user info
                 localStorage.setItem("token", data.jwt);
                 localStorage.setItem("user", JSON.stringify(data.user));
@@ -58,18 +61,25 @@ const LoginPage = () => {
 
                 switch (userRole) {
                     case "Admin":
+                        router.push("/admin");
                         break;
                     case "Librarian":
+                        router.push("/librarian");
                         break;
                     case "Acquisition Manager":
+                        router.push("/acquisition");
                         break;
                     case "Inventory Manager":
+                        router.push("/inventory");
                         break;
                     case "Circulation Staff":
+                        router.push("/circulation");
                         break;
                     case "Finance Officer":
+                        router.push("/finance");
                         break;
                     case "Student":
+                        router.push("/student");
                         break;
                 }
             }
@@ -77,16 +87,6 @@ const LoginPage = () => {
             setError(err.message || "Something went wrong.");
         }
     };
-
-    const fetchRoles = async () => {
-        const res = await fetch("http://localhost:1337/api/fetch-roles");
-        const result = await res.json();
-        setRoles(result);
-    };
-
-    useEffect(() => {
-        fetchRoles();
-    }, []);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
@@ -115,20 +115,6 @@ const LoginPage = () => {
                         required={true}
                         placeholder="Enter your password"
                     />
-
-                    <div className="mb-4">
-                        <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                        <select onChange={handleChange} name="role" id="role" className="w-full p-2 border border-gray-300 rounded" required>
-                            <option value="" defaultValue>Select your role</option>
-                            {
-                                roles.length > 0 && roles.map((role, index) => (
-                                    (role.name !== "Authenticated" && role.name !== "Public") && (
-                                        <option key={index} value={role.name}>{role.name}</option>
-                                    )
-                                ))
-                            }
-                        </select>
-                    </div>
 
                     {error && <p className="text-red-500 mb-2">{error}</p>}
 

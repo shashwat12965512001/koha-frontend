@@ -15,23 +15,20 @@ export default function AcquisitionsPage() {
     );
 
     const [form, setForm] = useState({
-        title: '',
-        issn: '',
-        publisher: '',
-        frequency: '',
-        startDate: '',
-        endDate: '',
-        lastIssueDate: '',
-        nextIssueDate: '',
-        subscriptionNumber: '',
-        price: '',
-        vendor: '',
-        language: '',
-        status: 'Active',
-        format: '',
-        location: '',
-        notes: ''
+        acquisitionDate: '',
+        invoiceNumber: '',
+        quantity: 1,
+        unitPrice: 0,
+        totalCost: 0,
+        fundingSource: '',   // e.g. 'Government', 'Private', etc.
+        notes: '',
+        book: '',            // Will hold selected book ID
+        branch: ''           // Will hold selected branch ID
     });
+
+    const [books, setBooks] = useState([]);
+
+    const [branches, setBranches] = useState([]);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -41,12 +38,26 @@ export default function AcquisitionsPage() {
         e.preventDefault();
 
         try {
-            const response = await fetch('http://localhost:5000/api/acquisitions/add', {
+            const response = await fetch('http://localhost:1337/api/acquisitions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    // Add auth token if required:
+                    // 'Authorization': `Bearer ${your_token}`
                 },
-                body: JSON.stringify(form),
+                body: JSON.stringify({
+                    data: {
+                        acquisitionDate: form.acquisitionDate,
+                        invoiceNumber: form.invoiceNumber,
+                        quantity: form.quantity,
+                        unitPrice: form.unitPrice,
+                        totalCost: form.totalCost,
+                        fundingSource: form.fundingSource,
+                        notes: form.notes,
+                        book: form.book,
+                        branch: form.branch
+                    }
+                }),
             });
 
             const data = await response.json();
@@ -58,32 +69,27 @@ export default function AcquisitionsPage() {
                 setIsModalOpen(false);
 
                 setForm({
-                    title: '',
-                    authors: '',
-                    publisher: '',
-                    publicationYear: '',
-                    isbn: '',
-                    edition: '',
-                    category: '',
-                    language: '',
-                    format: '',
-                    vendor: '',
-                    invoiceNumber: '',
                     acquisitionDate: '',
-                    quantity: '',
-                    unitPrice: '',
-                    shelfLocation: '',
-                    notes: ''
+                    invoiceNumber: '',
+                    quantity: 1,
+                    unitPrice: 0,
+                    totalCost: 0,
+                    fundingSource: '',
+                    notes: '',
+                    book: '',
+                    branch: ''
                 });
 
-                setPurchases(prev => [data.acquisition, ...prev]);
+                setPurchases(prev => [data.data, ...prev]);
             } else {
                 console.error('❌ Error:', data.error);
+                alert(`Error: ${data.error?.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('❌ Network error:', error);
             alert('Network error. Please try again.');
         }
+
         console.log('Submitted:', form);
     };
 
@@ -110,18 +116,29 @@ export default function AcquisitionsPage() {
         }
     };
 
-    useEffect(() => {
-        const fetchAcquisitions = async () => {
-            try {
-                const response = await fetch('http://localhost:5000/api/acquisitions/');
-                const data = await response.json();
-                setPurchases(data);
-            } catch (error) {
-                console.error('❌ Error fetching acquisitions:', error);
-            }
-        };
+    const fetchBooksAndBranches = async () => {
+        try {
+            const resBooks = await fetch('http://localhost:1337/api/books'); // Or with filters/pagination
+            const resBranches = await fetch('http://localhost:1337/api/branches');
+            const booksData = await resBooks.json();
+            const branchesData = await resBranches.json();
 
-        fetchAcquisitions();
+            setBooks(booksData.data.map(book => ({
+                id: book.id,
+                title: book.attributes.title
+            })));
+
+            setBranches(branchesData.data.map(branch => ({
+                id: branch.id,
+                name: branch.attributes.name
+            })));
+        } catch (err) {
+            console.error("Failed to fetch books/branches:", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchBooksAndBranches();
     }, []);
 
     return (
@@ -151,100 +168,68 @@ export default function AcquisitionsPage() {
                         {/* Modal body */}
                         <form onSubmit={handleSubmit} className="p-4 md:p-5">
                             <div className="grid gap-4 mb-4 grid-cols-2">
-                                {/* Title */}
-                                <div className="col-span-2">
-                                    <label className="block mb-1 text-sm font-medium">Book Title</label>
-                                    <input type="text" name="title" value={form.title} onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="e.g. Data Structures in C" />
-                                </div>
-
-                                {/* Authors */}
-                                <div className="col-span-2">
-                                    <label className="block mb-1 text-sm font-medium">Authors</label>
-                                    <input type="text" name="authors" value={form.authors} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="e.g. E. Balagurusamy" />
-                                </div>
-
-                                {/* Publisher */}
-                                <div className="col-span-2">
-                                    <label className="block mb-1 text-sm font-medium">Publisher</label>
-                                    <input type="text" name="publisher" value={form.publisher} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Publication Year */}
+                                {/* Acquisition Date */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Publication Year</label>
-                                    <input type="number" name="publicationYear" value={form.publicationYear} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* ISBN */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">ISBN</label>
-                                    <input type="text" name="isbn" value={form.isbn} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Edition */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Edition</label>
-                                    <input type="text" name="edition" value={form.edition} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Category */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Category</label>
-                                    <input type="text" name="category" value={form.category} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Language */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Language</label>
-                                    <input type="text" name="language" value={form.language} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Format */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Format</label>
-                                    <input type="text" name="format" value={form.format} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="e.g. Hardcover, Paperback" />
-                                </div>
-
-                                {/* Vendor */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Vendor</label>
-                                    <input type="text" name="vendor" value={form.vendor} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <label className="block mb-1 text-sm font-medium">Acquisition Date<span className="text-red-500">*</span></label>
+                                    <input type="date" name="acquisitionDate" value={form.acquisitionDate} onChange={handleChange} required className="w-full p-2 border rounded-md" />
                                 </div>
 
                                 {/* Invoice Number */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Invoice Number</label>
-                                    <input type="text" name="invoiceNumber" value={form.invoiceNumber} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Acquisition Date */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Acquisition Date</label>
-                                    <input type="date" name="acquisitionDate" value={form.acquisitionDate} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <label className="block mb-1 text-sm font-medium">Invoice Number<span className="text-red-500">*</span></label>
+                                    <input type="text" name="invoiceNumber" value={form.invoiceNumber} onChange={handleChange} required className="w-full p-2 border rounded-md" />
                                 </div>
 
                                 {/* Quantity */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Quantity</label>
-                                    <input type="number" name="quantity" required value={form.quantity} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <label className="block mb-1 text-sm font-medium">Quantity<span className="text-red-500">*</span></label>
+                                    <input type="number" name="quantity" value={form.quantity} onChange={handleChange} required className="w-full p-2 border rounded-md" />
                                 </div>
 
                                 {/* Unit Price */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Unit Price</label>
-                                    <input type="number" name="unitPrice" required value={form.unitPrice} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <label className="block mb-1 text-sm font-medium">Unit Price<span className="text-red-500">*</span></label>
+                                    <input type="number" name="unitPrice" value={form.unitPrice} onChange={handleChange} required className="w-full p-2 border rounded-md" />
                                 </div>
 
-                                {/* Total Cost (auto or manual) */}
+                                {/* Total Cost (optional or auto-calculated) */}
                                 <div>
                                     <label className="block mb-1 text-sm font-medium">Total Cost</label>
-                                    <input type="number" name="totalCost" value={form.totalCost} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <input type="number" name="totalCost" value={form.totalCost} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="Will be auto-calculated if not filled" />
                                 </div>
 
-                                {/* Shelf Location */}
+                                {/* Funding Source (Enumeration) */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Shelf Location</label>
-                                    <input type="text" name="shelfLocation" value={form.shelfLocation} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <label className="block mb-1 text-sm font-medium">Funding Source</label>
+                                    <select name="fundingSource" value={form.fundingSource} onChange={handleChange} className="w-full p-2 border rounded-md">
+                                        <option value="">Select</option>
+                                        <option value="Government">Government</option>
+                                        <option value="Private">Private</option>
+                                        <option value="University Fund">University Fund</option>
+                                        {/* Add more enums as defined in your Strapi model */}
+                                    </select>
+                                </div>
+
+                                {/* Book Relation (manyToOne with Book) */}
+                                <div className="col-span-2">
+                                    <label className="block mb-1 text-sm font-medium">Book<span className="text-red-500">*</span></label>
+                                    <select name="book" value={form.book} onChange={handleChange} required className="w-full p-2 border rounded-md">
+                                        <option value="">Select Book</option>
+                                        {books.length > 0 && books.map(book => (
+                                            <option key={book.id} value={book.id}>{book.title}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Branch Relation (manyToOne with Branch) */}
+                                <div className="col-span-2">
+                                    <label className="block mb-1 text-sm font-medium">Branch<span className="text-red-500">*</span></label>
+                                    <select name="branch" value={form.branch} onChange={handleChange} required className="w-full p-2 border rounded-md">
+                                        <option value="">Select Branch</option>
+                                        {branches.length > 0 && branches.map(branch => (
+                                            <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 {/* Notes */}

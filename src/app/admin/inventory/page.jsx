@@ -7,6 +7,7 @@ export default function InventoryPage() {
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [inventory, setInventory] = useState([]);
+    const [categories, setcategories] = useState([]);
     const [form, setForm] = useState({
         title: '',
         authors: '',
@@ -129,19 +130,6 @@ export default function InventoryPage() {
             alert('Network error. Please try again.');
         }
     };
-    const fetchBooks = async () => {
-        try {
-            const res = await fetch('http://localhost:5000/api/inventory/all');
-            const data = await res.json();
-            setInventory(data);
-        } catch (error) {
-            console.error('Failed to fetch books:', error);
-        }
-    };
-    useEffect(() => {
-
-        fetchBooks();
-    }, []);
 
     return (
         <AuthenticatedLayout>
@@ -172,14 +160,20 @@ export default function InventoryPage() {
                             <div className="grid gap-4 mb-4 grid-cols-2">
                                 {/* Title */}
                                 <div className="col-span-2">
-                                    <label className="block mb-1 text-sm font-medium">Book Title</label>
+                                    <label className="block mb-1 text-sm font-medium">Title</label>
                                     <input type="text" name="title" value={form.title} onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="e.g. Data Structures in C" />
                                 </div>
 
-                                {/* Authors */}
+                                {/* Sub Title */}
                                 <div className="col-span-2">
-                                    <label className="block mb-1 text-sm font-medium">Authors</label>
-                                    <input type="text" name="authors" value={form.authors} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="e.g. E. Balagurusamy" />
+                                    <label className="block mb-1 text-sm font-medium">Sub Title</label>
+                                    <input type="text" name="subtitle" value={form.subtitle} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="e.g. with C++" />
+                                </div>
+
+                                {/* Author */}
+                                <div className="col-span-2">
+                                    <label className="block mb-1 text-sm font-medium">Author</label>
+                                    <input type="text" name="authors" value={form.author} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="e.g. E. Balagurusamy" />
                                 </div>
 
                                 {/* Publisher */}
@@ -209,37 +203,40 @@ export default function InventoryPage() {
                                 {/* Category */}
                                 <div>
                                     <label className="block mb-1 text-sm font-medium">Category</label>
-                                    <input type="text" name="category" value={form.category} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    {
+                                        categories.length > 0 && (
+                                            <select name="category" value={form.category} onChange={handleChange} className="w-full p-2 border rounded-md">
+                                                <option value="">Select a category</option>
+                                                {categories.map((category) => (
+                                                    <option key={category.id} value={category.id}>
+                                                        {category.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )
+                                    }
                                 </div>
 
                                 {/* Language */}
                                 <div>
                                     <label className="block mb-1 text-sm font-medium">Language</label>
-                                    <input type="text" name="language" value={form.language} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <select name="language" value={form.language} onChange={handleChange} className="w-full p-2 border rounded-md" id="language">
+                                        <option value="default">Select a language</option>
+                                        <option value="English">English</option>
+                                        <option value="Hindi">Hindi</option>
+                                        <option value="Kannada">Kannada</option>
+                                    </select>
                                 </div>
 
                                 {/* Format */}
                                 <div>
                                     <label className="block mb-1 text-sm font-medium">Format</label>
-                                    <input type="text" name="format" value={form.format} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="e.g. Hardcover, Paperback" />
-                                </div>
-
-                                {/* Vendor */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Vendor</label>
-                                    <input type="text" name="vendor" value={form.vendor} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Invoice Number */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Invoice Number</label>
-                                    <input type="text" name="invoiceNumber" value={form.invoiceNumber} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Acquisition Date */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Acquisition Date</label>
-                                    <input type="date" name="acquisitionDate" value={form.acquisitionDate} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <select name="format" value={form.format} onChange={handleChange} className="w-full p-2 border rounded-md" id="format">
+                                        <option value="default">Select a format</option>
+                                        <option value="Paperback">Paperback</option>
+                                        <option value="Hardcover">Hardcover</option>
+                                        <option value="eBook">eBook</option>
+                                    </select>
                                 </div>
 
                                 {/* Quantity */}
