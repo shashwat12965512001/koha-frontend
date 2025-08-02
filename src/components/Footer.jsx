@@ -6,7 +6,7 @@ const Footer = () => {
                     <div className="flex flex-col space-y-3">
                         <img
                             width={150}
-                            src="assets/img/logo-dark.png" // ← Update this to your actual logo path
+                            src="/assets/img/logo-dark.png" // ← Update this to your actual logo path
                             alt="PESU Library Logo"
                         />
                     </div>
