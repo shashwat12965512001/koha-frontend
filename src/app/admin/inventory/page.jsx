@@ -8,32 +8,65 @@ export default function InventoryPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [inventory, setInventory] = useState([]);
     const [categories, setcategories] = useState([]);
+    const [acquisitions, setacquisitions] = useState([]);
     const [form, setForm] = useState({
         title: '',
-        authors: '',
+        subtitle: '',
+        author: '',
         publisher: '',
-        publicationYear: '',
         isbn: '',
-        edition: '',
-        category: '',
         language: '',
+        edition: '',
+        publishedYear: '',
+        category: '',
+        genre: '',
         format: '',
-        vendor: '',
-        invoiceNumber: '',
-        acquisitionDate: '',
-        quantity: '',
-        unitPrice: '',
-        totalCost: '',
+        pages: '',
+        summary: '',
+        coverImageFile: null,
+        coverImagePreview: null,
         shelfLocation: '',
-        callNumber: '',
         accessionNumber: '',
         barcode: '',
-        status: 'Available', // Available, Issued, Lost, Damaged
+        bookStatus: 'Available',
+        numberOfCopies: '',
+        availableCopies: '',
+        addedAt: '',
         notes: '',
-        coverImageFile: null,
+        tags: [{ value: '' }],
+        acquisitions: '',
     });
     const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
+        const { name, value, type, files } = e.target;
+
+        // Handle file input (cover image)
+        if (type === 'file') {
+            const file = files[0];
+            setForm((prev) => ({
+                ...prev,
+                coverImageFile: file,
+                coverImagePreview: URL.createObjectURL(file),
+            }));
+            return;
+        }
+
+        // Handle repeatable component like tags (name="tags-0", "tags-1", etc.)
+        if (name.startsWith('tags-')) {
+            const index = parseInt(name.split('-')[1], 10);
+            const updatedTags = [...form.tags];
+            updatedTags[index].value = value;
+            setForm((prev) => ({
+                ...prev,
+                tags: updatedTags,
+            }));
+            return;
+        }
+
+        // For all other inputs
+        setForm((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
     };
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -41,20 +74,44 @@ export default function InventoryPage() {
         try {
             const formData = new FormData();
 
-            // Append all fields
+            // Normal fields (except special ones)
             Object.keys(form).forEach((key) => {
-                if (key !== 'coverImagePreview' && key !== 'coverImageFile') {
-                    formData.append(key, form[key]);
+                if (['coverImageFile', 'coverImagePreview', 'tags', 'category', 'acquisitions'].includes(key)) return;
+                formData.append(`data[${key}]`, form[key]);
+            });
+
+            // Tags (Repeatable Component - fix based on actual field name in shared.tag)
+            form.tags.forEach((tag, index) => {
+                if (tag.value) {
+                    formData.append(`data[tags][${index}][value]`, tag.value); // ← use correct key here
                 }
             });
 
-            // Append the file
-            if (form.coverImageFile) {
-                formData.append('coverImage', form.coverImageFile);
+            // Relations (only if selected)
+            if (form.category) {
+                formData.append('data[category]', form.category);
             }
 
-            const response = await fetch('http://localhost:5000/api/inventory/add', {
+            if (form.acquisitions) {
+                formData.append('data[acquisitions]', form.acquisitions);
+            }
+
+            // Media file
+            if (form.coverImageFile) {
+                formData.append('files.coverImage', form.coverImageFile);
+            }
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Missing auth token. Please login again.');
+                return;
+            }
+
+            const response = await fetch('http://localhost:1337/api/books', {
                 method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
                 body: formData,
             });
 
@@ -64,39 +121,40 @@ export default function InventoryPage() {
                 alert('✅ Book added successfully!');
                 console.log('Success:', data);
 
+                // Reset form
                 setForm({
                     title: '',
-                    authors: '',
+                    subtitle: '',
+                    author: '',
                     publisher: '',
-                    publicationYear: '',
                     isbn: '',
-                    edition: '',
-                    category: '',
                     language: '',
+                    edition: '',
+                    publishedYear: '',
+                    category: '',
+                    genre: '',
                     format: '',
-                    vendor: '',
-                    invoiceNumber: '',
-                    acquisitionDate: '',
-                    quantity: '',
-                    unitPrice: '',
-                    totalCost: '',
-                    shelfLocation: '',
-                    callNumber: '',
-                    accessionNumber: '',
-                    barcode: '',
-                    status: 'Available',
-                    notes: '',
+                    pages: '',
+                    summary: '',
                     coverImageFile: null,
                     coverImagePreview: null,
+                    shelfLocation: '',
+                    accessionNumber: '',
+                    barcode: '',
+                    bookStatus: 'Available',
+                    numberOfCopies: '',
+                    availableCopies: '',
+                    addedAt: '',
+                    notes: '',
+                    tags: [{ value: '' }],
+                    acquisitions: '',
                 });
 
                 setIsModalOpen(false);
-
-                // Optional: update inventory list
-                setInventory((prev) => [data.book, ...prev]);
+                setInventory((prev) => [data.data, ...prev]);
             } else {
                 console.error('❌ Error:', data.error);
-                alert(data.error || 'Failed to add book.');
+                alert(data.error.message || 'Failed to add book.');
             }
         } catch (error) {
             console.error('❌ Network error:', error);
@@ -105,31 +163,107 @@ export default function InventoryPage() {
     };
     const filteredBooks = inventory.filter(book =>
         book.title.toLowerCase().includes(search.toLowerCase()) ||
-        book.authors.toLowerCase().includes(search.toLowerCase())
+        book.author.toLowerCase().includes(search.toLowerCase())
     );
     const handleDelete = async (id) => {
         const confirmDelete = window.confirm("Are you sure you want to delete this book?");
         if (!confirmDelete) return;
 
         try {
-            const res = await fetch(`http://localhost:5000/api/inventory/${id}`, {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Missing auth token. Please login again.');
+                return;
+            }
+
+            const res = await fetch(`http://localhost:1337/api/books/${id}`, {
                 method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
 
             const data = await res.json();
 
             if (res.ok) {
                 alert('🗑️ Book deleted successfully!');
-                setInventory(prev => prev.filter(book => book._id !== id));
+                setInventory(prev => prev.filter(book => book.id !== id));
             } else {
                 console.error('❌ Error:', data.error);
-                alert(data.error || 'Failed to delete book');
+                alert(data.error?.message || 'Failed to delete book');
             }
         } catch (err) {
             console.error('❌ Network error:', err);
             alert('Network error. Please try again.');
         }
     };
+    const getAllAcquisitions = async () => {
+        try {
+            const response = await fetch('http://localhost:1337/api/acquisitions?populate=*'); // populate if you want related data
+
+            if (response.ok) {
+                const result = await response.json();
+                return result.data; // Strapi returns data inside .data
+            }
+            console.log('❌ Failed to fetch acquisitions:', response.statusText);
+        } catch (error) {
+            console.error('❌ Failed to fetch acquisitions:', error);
+            return [];
+        }
+    };
+    const getAllCategories = async () => {
+        try {
+            const response = await fetch('http://localhost:1337/api/categories?populate=*');
+
+            if (response.ok) {
+                const result = await response.json();
+                return result.data || [];
+            }
+            console.log('❌ Failed to fetch categories:', response.statusText);
+        } catch (error) {
+            console.error('❌ Failed to fetch categories:', error);
+            return [];
+        }
+    };
+    const fetchBooks = async () => {
+        try {
+            const token = localStorage.getItem('token');
+
+            const response = await fetch('http://localhost:1337/api/books?populate=*', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log('✅ All Books:', data.data); // .data is the array of books
+                return data.data;
+            } else {
+                console.error('❌ Error fetching books:', data.error);
+                return [];
+            }
+        } catch (err) {
+            console.error('❌ Network error:', err);
+            return [];
+        }
+    };
+    useEffect(() => {
+        const fetchData = async () => {
+            const [acqData, catData, books] = await Promise.all([
+                getAllAcquisitions(),
+                getAllCategories(),
+                fetchBooks(),
+            ]);
+
+            setacquisitions(acqData);
+            setcategories(catData);
+            setInventory(books);
+        };
+
+        fetchData();
+    }, []);
 
     return (
         <AuthenticatedLayout>
@@ -161,31 +295,25 @@ export default function InventoryPage() {
                                 {/* Title */}
                                 <div className="col-span-2">
                                     <label className="block mb-1 text-sm font-medium">Title</label>
-                                    <input type="text" name="title" value={form.title} onChange={handleChange} required className="w-full p-2 border rounded-md" placeholder="e.g. Data Structures in C" />
+                                    <input type="text" name="title" value={form.title} onChange={handleChange} className="w-full p-2 border rounded-md" required />
                                 </div>
 
-                                {/* Sub Title */}
+                                {/* Subtitle */}
                                 <div className="col-span-2">
-                                    <label className="block mb-1 text-sm font-medium">Sub Title</label>
-                                    <input type="text" name="subtitle" value={form.subtitle} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="e.g. with C++" />
+                                    <label className="block mb-1 text-sm font-medium">Subtitle</label>
+                                    <input type="text" name="subtitle" value={form.subtitle} onChange={handleChange} className="w-full p-2 border rounded-md" />
                                 </div>
 
                                 {/* Author */}
                                 <div className="col-span-2">
                                     <label className="block mb-1 text-sm font-medium">Author</label>
-                                    <input type="text" name="authors" value={form.author} onChange={handleChange} className="w-full p-2 border rounded-md" placeholder="e.g. E. Balagurusamy" />
+                                    <input type="text" name="author" value={form.author} onChange={handleChange} className="w-full p-2 border rounded-md" />
                                 </div>
 
                                 {/* Publisher */}
                                 <div className="col-span-2">
                                     <label className="block mb-1 text-sm font-medium">Publisher</label>
                                     <input type="text" name="publisher" value={form.publisher} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Publication Year */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Publication Year</label>
-                                    <input type="number" name="publicationYear" value={form.publicationYear} onChange={handleChange} className="w-full p-2 border rounded-md" />
                                 </div>
 
                                 {/* ISBN */}
@@ -200,73 +328,72 @@ export default function InventoryPage() {
                                     <input type="text" name="edition" value={form.edition} onChange={handleChange} className="w-full p-2 border rounded-md" />
                                 </div>
 
-                                {/* Category */}
+                                {/* Published Year */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Category</label>
-                                    {
-                                        categories.length > 0 && (
-                                            <select name="category" value={form.category} onChange={handleChange} className="w-full p-2 border rounded-md">
-                                                <option value="">Select a category</option>
-                                                {categories.map((category) => (
-                                                    <option key={category.id} value={category.id}>
-                                                        {category.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        )
-                                    }
+                                    <label className="block mb-1 text-sm font-medium">Published Year</label>
+                                    <input type="number" name="publishedYear" value={form.publishedYear} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                </div>
+
+                                {/* Pages */}
+                                <div>
+                                    <label className="block mb-1 text-sm font-medium">Pages</label>
+                                    <input type="number" name="pages" value={form.pages} onChange={handleChange} className="w-full p-2 border rounded-md" />
                                 </div>
 
                                 {/* Language */}
                                 <div>
                                     <label className="block mb-1 text-sm font-medium">Language</label>
-                                    <select name="language" value={form.language} onChange={handleChange} className="w-full p-2 border rounded-md" id="language">
-                                        <option value="default">Select a language</option>
+                                    <select name="language" value={form.language} onChange={handleChange} className="w-full p-2 border rounded-md">
+                                        <option value="">Select a language</option>
                                         <option value="English">English</option>
                                         <option value="Hindi">Hindi</option>
                                         <option value="Kannada">Kannada</option>
                                     </select>
                                 </div>
 
+                                {/* Genre */}
+                                <div>
+                                    <label className="block mb-1 text-sm font-medium">Genre</label>
+                                    <select name="genre" value={form.genre} onChange={handleChange} className="w-full p-2 border rounded-md">
+                                        <option value="">Select a genre</option>
+                                        <option value="Fiction">Fiction</option>
+                                        <option value="Non-fiction">Non-fiction</option>
+                                        <option value="Sci-fi">Sci-fi</option>
+                                        <option value="Biography">Biography</option>
+                                    </select>
+                                </div>
+
                                 {/* Format */}
                                 <div>
                                     <label className="block mb-1 text-sm font-medium">Format</label>
-                                    <select name="format" value={form.format} onChange={handleChange} className="w-full p-2 border rounded-md" id="format">
-                                        <option value="default">Select a format</option>
+                                    <select name="format" value={form.format} onChange={handleChange} className="w-full p-2 border rounded-md">
+                                        <option value="">Select a format</option>
                                         <option value="Paperback">Paperback</option>
                                         <option value="Hardcover">Hardcover</option>
                                         <option value="eBook">eBook</option>
                                     </select>
                                 </div>
 
-                                {/* Quantity */}
+                                {/* Category (Relation) */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Quantity</label>
-                                    <input type="number" name="quantity" required value={form.quantity} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <label className="block mb-1 text-sm font-medium">Category</label>
+                                    <select name="category" value={form.category} onChange={handleChange} className="w-full p-2 border rounded-md">
+                                        <option value="">Select a category</option>
+                                        {Array.isArray(categories) && categories.length > 0 && categories.map((cat) => (
+                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
-                                {/* Unit Price */}
+                                {/* Book Status */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Unit Price</label>
-                                    <input type="number" name="unitPrice" required value={form.unitPrice} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Total Cost */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Total Cost</label>
-                                    <input type="number" name="totalCost" value={form.totalCost} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Shelf Location */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Shelf Location</label>
-                                    <input type="text" name="shelfLocation" value={form.shelfLocation} onChange={handleChange} className="w-full p-2 border rounded-md" />
-                                </div>
-
-                                {/* Call Number */}
-                                <div>
-                                    <label className="block mb-1 text-sm font-medium">Call Number</label>
-                                    <input type="text" name="callNumber" value={form.callNumber} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                    <label className="block mb-1 text-sm font-medium">Book Status</label>
+                                    <select name="bookStatus" value={form.bookStatus} onChange={handleChange} className="w-full p-2 border rounded-md">
+                                        <option value="Available">Available</option>
+                                        <option value="Issued">Issued</option>
+                                        <option value="Lost">Lost</option>
+                                        <option value="Damaged">Damaged</option>
+                                    </select>
                                 </div>
 
                                 {/* Accession Number */}
@@ -281,20 +408,31 @@ export default function InventoryPage() {
                                     <input type="text" name="barcode" value={form.barcode} onChange={handleChange} className="w-full p-2 border rounded-md" />
                                 </div>
 
-                                {/* Status */}
+                                {/* Shelf Location */}
                                 <div>
-                                    <label className="block mb-1 text-sm font-medium">Status</label>
-                                    <select name="status" value={form.status} onChange={handleChange} className="w-full p-2 border rounded-md">
-                                        <option value="Available">Available</option>
-                                        <option value="Issued">Issued</option>
-                                        <option value="Lost">Lost</option>
-                                        <option value="Damaged">Damaged</option>
-                                        <option value="Reservered">Reservered</option>
-                                        <option value="Out of Stock">Out of Stock</option>
-                                    </select>
+                                    <label className="block mb-1 text-sm font-medium">Shelf Location</label>
+                                    <input type="text" name="shelfLocation" value={form.shelfLocation} onChange={handleChange} className="w-full p-2 border rounded-md" />
                                 </div>
 
-                                {/* Upload Cover */}
+                                {/* Number of Copies */}
+                                <div>
+                                    <label className="block mb-1 text-sm font-medium">Number of Copies</label>
+                                    <input type="number" name="numberOfCopies" value={form.numberOfCopies} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                </div>
+
+                                {/* Available Copies */}
+                                <div>
+                                    <label className="block mb-1 text-sm font-medium">Available Copies</label>
+                                    <input type="number" name="availableCopies" value={form.availableCopies} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                </div>
+
+                                {/* Added At */}
+                                <div>
+                                    <label className="block mb-1 text-sm font-medium">Added At</label>
+                                    <input type="date" name="addedAt" value={form.addedAt} onChange={handleChange} className="w-full p-2 border rounded-md" />
+                                </div>
+
+                                {/* Cover Image */}
                                 <div>
                                     <label className="block mb-1 text-sm font-medium">Upload Cover Image</label>
                                     <input
@@ -306,23 +444,82 @@ export default function InventoryPage() {
                                             setForm((prev) => ({
                                                 ...prev,
                                                 coverImageFile: file,
+                                                coverImagePreview: URL.createObjectURL(file),
                                             }));
                                         }}
                                         className="w-full p-2 border rounded-md"
                                     />
                                     {form.coverImagePreview && (
-                                        <img
-                                            src={form.coverImagePreview}
-                                            alt="Preview"
-                                            className="mt-2 max-h-48 rounded shadow border"
-                                        />
+                                        <img src={form.coverImagePreview} alt="Preview" className="mt-2 max-h-48 rounded shadow border" />
                                     )}
+                                </div>
+
+                                {/* Tags (Repeatable Component) */}
+                                <div className="col-span-2">
+                                    <label className="block mb-1 text-sm font-medium">Tags</label>
+                                    {form.tags.map((tag, index) => (
+                                        <div key={index} className="flex gap-2 mb-2">
+                                            <input
+                                                type="text"
+                                                name={`tags-${index}`}
+                                                value={tag.value}
+                                                onChange={(e) => {
+                                                    const newTags = [...form.tags];
+                                                    newTags[index].value = e.target.value;
+                                                    setForm((prev) => ({ ...prev, tags: newTags }));
+                                                }}
+                                                className="w-full p-2 border rounded-md"
+                                                placeholder="Tag name"
+                                            />
+                                            <button
+                                                type="button"
+                                                className="text-red-500"
+                                                onClick={() => {
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        tags: form.tags.filter((_, i) => i !== index),
+                                                    }));
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                tags: [...prev.tags, { value: '' }],
+                                            }))
+                                        }
+                                        className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-md"
+                                    >
+                                        + Add Tag
+                                    </button>
+                                </div>
+
+                                {/* Summary */}
+                                <div className="col-span-2">
+                                    <label className="block mb-1 text-sm font-medium">Summary</label>
+                                    <textarea name="summary" value={form.summary} onChange={handleChange} rows={5} className="w-full p-2 border rounded-md" />
                                 </div>
 
                                 {/* Notes */}
                                 <div className="col-span-2">
-                                    <label className="block mb-1 text-sm font-medium">Additional Notes</label>
+                                    <label className="block mb-1 text-sm font-medium">Notes</label>
                                     <textarea name="notes" value={form.notes} onChange={handleChange} rows={3} className="w-full p-2 border rounded-md" />
+                                </div>
+
+                                {/* Acquisition Relation (optional dropdown) */}
+                                <div className="col-span-2">
+                                    <label className="block mb-1 text-sm font-medium">Acquisition</label>
+                                    <select name="acquisitions" value={form.acquisitions} onChange={handleChange} className="w-full p-2 border rounded-md">
+                                        <option value="">Select acquisition</option>
+                                        {Array.isArray(acquisitions) && acquisitions.length > 0 && acquisitions.map((a) => (
+                                            <option key={a.id} value={a.id}>{a.identifier || `Acquisition ${a.id}`}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 
@@ -380,23 +577,24 @@ export default function InventoryPage() {
                                 ) :
                                     inventory.length > 0 && filteredBooks.length > 0 ? (
                                         filteredBooks.map((book, index) => (
-                                            <tr key={book._id || index} className="border-b hover:bg-gray-50">
+                                            console.log(book),
+                                            <tr key={book.id || index} className="border-b hover:bg-gray-50">
                                                 <td className="px-6 py-3">INV-{index + 1}</td>
                                                 <td className="px-6 py-3"><img className='w-16' src={book.coverImageUrl ? `http://localhost:5000${book.coverImageUrl}` : '/assets/img/cover.png'} alt="cover" /></td>
                                                 <td className="px-6 py-3">{book.title}</td>
-                                                <td className="px-6 py-3">{book.authors}</td>
+                                                <td className="px-6 py-3">{book.author}</td>
                                                 <td className="px-6 py-3">
-                                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${book.status === 'Available' ? 'bg-green-100 text-green-700' :
-                                                        book.status === 'Lost' ? 'bg-red-100 text-red-700' :
-                                                            book.status === 'Damaged' ? 'bg-yellow-100 text-yellow-700' :
+                                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${book.bookStatus === 'Available' ? 'bg-green-100 text-green-700' :
+                                                        book.bookStatus === 'Lost' ? 'bg-red-100 text-red-700' :
+                                                            book.bookStatus === 'Damaged' ? 'bg-yellow-100 text-yellow-700' :
                                                                 'bg-gray-200 text-gray-600'
                                                         }`}>
-                                                        {book.status}
+                                                        {book.bookStatus}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-3">{book.shelfLocation}</td>
                                                 <td className="px-6 py-3">
-                                                    <button onClick={() => handleDelete(book._id)}>
+                                                    <button onClick={() => handleDelete(book.id)}>
                                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="w-8 h-8 text-red-600 mx-auto hover:scale-110 transition">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m3 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h14zM10 11v6M14 11v6" />
                                                         </svg>
